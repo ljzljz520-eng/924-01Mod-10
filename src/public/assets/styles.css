@@ -151,12 +151,6 @@ header {
   box-shadow: 0 18px 38px rgba(15, 23, 42, 0.12);
 }
 
-.card img {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-}
-
 .card-body {
   padding: 16px;
   display: flex;
@@ -211,6 +205,83 @@ header {
   border-radius: var(--radius);
   color: #065f46;
   margin-top: 12px;
+}
+
+.card-img-wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-img-wrap img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.card-ai {
+  border-color: #c084fc;
+}
+
+.card-ai:hover {
+  box-shadow: 0 18px 38px rgba(109, 40, 217, 0.15);
+}
+
+.ai-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  background: rgba(109, 40, 217, 0.9);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+  z-index: 1;
+}
+
+.portrait-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 10px;
+  background: rgba(245, 158, 11, 0.9);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+  z-index: 1;
+}
+
+.card-author {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.ai-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: #faf5ff;
+  border: 1px solid #c084fc;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #6d28d9;
+  transition: background 0.15s;
+}
+
+.ai-filter-toggle:hover {
+  background: #ede9fe;
+}
+
+.ai-filter-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #7c3aed;
 }
 
 @media (max-width: 640px) {

@@ -10,6 +10,11 @@ if (!$template) {
     exit;
 }
 
+if ($template['status'] !== 'active') {
+    header('Location: /');
+    exit;
+}
+
 $images = format_preview_images($template['preview_images']);
 ?>
 <!DOCTYPE html>
@@ -34,6 +39,13 @@ $images = format_preview_images($template['preview_images']);
         .detail-section p {margin:0;line-height:1.7;color:var(--muted);}
         .download-box {background:linear-gradient(135deg,rgba(37,99,235,0.05),rgba(16,185,129,0.05));border:2px solid var(--accent);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:12px;align-items:center;}
         .download-box .url {word-break:break-all;color:var(--muted);font-size:0.95rem;text-align:center;}
+        .ai-info-panel {background:#faf5ff;border:2px solid #c084fc;border-radius:var(--radius);padding:20px;margin-bottom:20px;box-shadow:0 4px 12px rgba(109,40,217,0.06);}
+        .ai-info-panel h2 {margin:0 0 12px;font-size:1.15rem;color:#6d28d9;display:flex;align-items:center;gap:8px;}
+        .ai-info-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;}
+        .ai-info-item {padding:10px 14px;background:#fff;border-radius:10px;border:1px solid #e9d5ff;}
+        .ai-info-item .label {font-size:0.82rem;color:#7c3aed;font-weight:600;margin-bottom:4px;}
+        .ai-info-item .value {font-size:0.95rem;color:var(--text);}
+        .portrait-warning {display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;color:#92400e;font-size:0.9rem;margin-top:8px;}
         @media (max-width:640px){.detail-gallery{grid-template-columns:1fr;}}
     </style>
 </head>
@@ -42,16 +54,49 @@ $images = format_preview_images($template['preview_images']);
     <a href="/" class="back-link">← 返回模板列表</a>
 
     <div class="detail-header">
-        <h1><?php echo e($template['title']); ?></h1>
+        <h1>
+            <?php echo e($template['title']); ?>
+            <?php if (!empty($template['is_ai_generated'])): ?>
+                <span class="ai-badge" style="font-size:0.85rem;vertical-align:middle;">AI 生成</span>
+            <?php endif; ?>
+        </h1>
         <div class="detail-meta">
             <div class="tags">
                 <?php foreach (array_filter(array_map('trim', explode(',', $template['tags'] ?? ''))) as $tag): ?>
                     <span class="tag"><?php echo e($tag); ?></span>
                 <?php endforeach; ?>
             </div>
+            <?php if (!empty($template['author_name'])): ?>
+                <span class="muted">作者：<?php echo e($template['author_name']); ?></span>
+            <?php endif; ?>
             <span class="muted" style="margin-left:auto;">更新于 <?php echo e($template['updated_at']); ?></span>
         </div>
     </div>
+
+    <?php if (!empty($template['is_ai_generated'])): ?>
+        <div class="ai-info-panel">
+            <h2>🤖 AI 生成素材声明</h2>
+            <div class="ai-info-grid">
+                <div class="ai-info-item">
+                    <div class="label">AI 工具</div>
+                    <div class="value"><?php echo e($template['ai_tool'] ?? '未声明'); ?></div>
+                </div>
+                <div class="ai-info-item">
+                    <div class="label">可商用依据</div>
+                    <div class="value"><?php echo e($template['ai_commercial_basis'] ?? '未声明'); ?></div>
+                </div>
+                <div class="ai-info-item">
+                    <div class="label">人物肖像</div>
+                    <div class="value"><?php echo !empty($template['ai_has_portrait']) ? '包含 AI 生成的人物肖像' : '不包含人物肖像'; ?></div>
+                </div>
+            </div>
+            <?php if (!empty($template['ai_has_portrait'])): ?>
+                <div class="portrait-warning">
+                    ⚠️ 此素材包含 AI 生成的人物肖像，商用时请注意肖像权相关法律风险
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 
     <?php if (!empty($images)): ?>
         <div class="detail-gallery">

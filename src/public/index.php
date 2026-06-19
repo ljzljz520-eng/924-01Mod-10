@@ -3,7 +3,8 @@ require_once __DIR__ . '/../includes/template_repo.php';
 require_once __DIR__ . '/../includes/helpers.php';
 
 $keyword = isset($_GET['q']) ? trim($_GET['q']) : null;
-$templates = fetch_templates($keyword);
+$hide_ai = isset($_GET['hide_ai']) && $_GET['hide_ai'] === '1' ? true : null;
+$templates = fetch_templates($keyword, $hide_ai, 'active');
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -31,6 +32,10 @@ $templates = fetch_templates($keyword);
             <input type="text" name="q" placeholder="搜索标题或标签，如 企业 / 作品集" value="<?php echo e($keyword); ?>">
             <button type="submit" class="btn btn-primary">搜索模板</button>
             <a class="btn btn-ghost" href="/">重置</a>
+            <label class="ai-filter-toggle">
+                <input type="checkbox" name="hide_ai" value="1" <?php echo $hide_ai ? 'checked' : ''; ?> onchange="this.form.submit()">
+                <span>隐藏 AI 生成素材</span>
+            </label>
         </form>
         <div class="notice">资源永久免费提供下载，若需定制或商业授权可在下载后与站长联系。</div>
     </div>
@@ -39,11 +44,22 @@ $templates = fetch_templates($keyword);
 <main class="main">
     <div class="grid">
         <?php foreach ($templates as $tpl): $images = format_preview_images($tpl['preview_images']); ?>
-            <article class="card">
-                <img src="<?php echo e($images[0] ?? 'https://images.unsplash.com/photo-1481277542470-605612bd2d61?auto=format&fit=crop&w=1200&q=80'); ?>" alt="<?php echo e($tpl['title']); ?> 预览图">
+            <article class="card<?php echo !empty($tpl['is_ai_generated']) ? ' card-ai' : ''; ?>">
+                <div class="card-img-wrap">
+                    <img src="<?php echo e($images[0] ?? 'https://images.unsplash.com/photo-1481277542470-605612bd2d61?auto=format&fit=crop&w=1200&q=80'); ?>" alt="<?php echo e($tpl['title']); ?> 预览图">
+                    <?php if (!empty($tpl['is_ai_generated'])): ?>
+                        <span class="ai-badge">AI 生成</span>
+                    <?php endif; ?>
+                    <?php if (!empty($tpl['ai_has_portrait'])): ?>
+                        <span class="portrait-badge">含人物肖像</span>
+                    <?php endif; ?>
+                </div>
                 <div class="card-body">
                     <h3><?php echo e($tpl['title']); ?></h3>
                     <p><?php echo e($tpl['description']); ?></p>
+                    <?php if (!empty($tpl['author_name'])): ?>
+                        <div class="card-author">作者：<?php echo e($tpl['author_name']); ?></div>
+                    <?php endif; ?>
                     <div class="tags">
                         <?php foreach (array_filter(array_map('trim', explode(',', $tpl['tags'] ?? ''))) as $tag): ?>
                             <span class="tag"><?php echo e($tag); ?></span>

@@ -8,13 +8,12 @@ require_login();
 $id = isset($_GET['id']) ? (int) $_GET['id'] : null;
 $template = $id ? get_template($id) : null;
 $error = null;
-$form_data = []; // 用于保存表单数据
+$form_data = [];
+$authors = fetch_authors();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // 处理预览图上传
     $preview_images = [];
-    
-    // 保留已有的图片URL
+
     if (!empty($_POST['existing_images'])) {
         foreach ($_POST['existing_images'] as $img) {
             if (trim($img)) {
@@ -22,8 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
-    
-    // 处理新上传的图片
+
     if (!empty($_FILES['new_images']['name'][0])) {
         foreach ($_FILES['new_images']['name'] as $key => $name) {
             if ($_FILES['new_images']['error'][$key] === UPLOAD_ERR_OK) {
@@ -41,8 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
-    
-    // 处理下载文件上传或URL
+
     $download_url = trim($_POST['download_url'] ?? '');
     if (!empty($_FILES['download_file']['name']) && $_FILES['download_file']['error'] === UPLOAD_ERR_OK) {
         $uploaded = handle_file_upload($_FILES['download_file'], 'files');
@@ -50,11 +47,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $download_url = $uploaded;
         }
     }
-    
-    // 如果是编辑模式且没有提供新的下载链接，保留原有的
+
     if (empty($download_url) && $template) {
         $download_url = $template['download_url'] ?? '';
     }
+
+    $is_ai = isset($_POST['is_ai_generated']) ? 1 : 0;
 
     $payload = [
         'title' => trim($_POST['title'] ?? ''),
@@ -63,11 +61,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'download_url' => $download_url,
         'tags' => trim($_POST['tags'] ?? ''),
         'preview_images' => $preview_images,
+        'author_id' => $_POST['author_id'] ?? null,
+        'is_ai_generated' => $is_ai,
+        'ai_tool' => $is_ai ? trim($_POST['ai_tool'] ?? '') : null,
+        'ai_commercial_basis' => $is_ai ? trim($_POST['ai_commercial_basis'] ?? '') : null,
+        'ai_has_portrait' => $is_ai && isset($_POST['ai_has_portrait']) ? 1 : 0,
     ];
 
     if (!$payload['title'] || !$payload['download_url']) {
         $error = '标题和下载链接为必填项。';
-        $form_data = $payload; // 保存表单数据用于回显
+        $form_data = $payload;
+    } elseif ($is_ai && !$payload['ai_tool']) {
+        $error = 'AI 生成素材必须声明所使用的 AI 工具。';
+        $form_data = $payload;
+    } elseif ($is_ai && !$payload['ai_commercial_basis']) {
+        $error = 'AI 生成素材必须声明可商用依据。';
+        $form_data = $payload;
     } else {
         upsert_template($payload, $id);
         header('Location: /admin/dashboard.php');
@@ -75,14 +84,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// 如果有表单数据（验证失败），使用表单数据；否则使用数据库数据
 $display_data = !empty($form_data) ? $form_data : $template;
-// form_data 中 preview_images 已是数组，template 中是 JSON 字符串
 if (!empty($form_data)) {
     $images = $form_data['preview_images'] ?? [];
 } else {
     $images = $template ? format_preview_images($template['preview_images']) : [];
 }
+$is_ai_checked = !empty($form_data) ? (!empty($form_data['is_ai_generated'])) : ($template ? (!empty($template['is_ai_generated'])) : false);
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -106,6 +114,7 @@ if (!empty($form_data)) {
         .file-input-group {display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
         .hint {color:#64748b;font-size:0.9rem;margin-top:4px;}
         .download-section {display:grid;gap:10px;}
+        .ai-section {border:2px solid #c084fc;padding:16px;border-radius:12px;background:#faf5ff;}
     </style>
 </head>
 <body>
@@ -123,6 +132,15 @@ if (!empty($form_data)) {
         <div>
             <label>标题*</label>
             <input name="title" value="<?php echo e($display_data['title'] ?? ''); ?>" required>
+        </div>
+        <div>
+            <label>作者</label>
+            <select name="author_id" style="width:100%;padding:12px 14px;border:1px solid #e2e8f0;border-radius:12px;font-size:1rem;">
+                <option value="">-- 选择作者 --</option>
+                <?php foreach ($authors as $author): ?>
+                    <option value="<?php echo e($author['id']); ?>" <?php echo (($display_data['author_id'] ?? '') == $author['id']) ? 'selected' : ''; ?>><?php echo e($author['name']); ?>（信用 <?php echo e($author['credit_score']); ?>）</option>
+                <?php endforeach; ?>
+            </select>
         </div>
         <div>
             <label>简要描述</label>
@@ -180,6 +198,29 @@ if (!empty($form_data)) {
             <label>标签（用逗号分隔）</label>
             <input name="tags" placeholder="企业,响应式" value="<?php echo e($display_data['tags'] ?? ''); ?>">
         </div>
+
+        <div class="ai-section">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" name="is_ai_generated" id="is_ai_generated" value="1" <?php echo $is_ai_checked ? 'checked' : ''; ?> onchange="toggleAiFields()">
+                此素材由 AI 生成或辅助生成
+            </label>
+            <div id="ai_fields" style="<?php echo $is_ai_checked ? '' : 'display:none;'; ?>margin-top:12px;display:<?php echo $is_ai_checked ? 'grid' : 'none'; ?>;gap:12px;">
+                <div>
+                    <label>AI 工具名称*</label>
+                    <input name="ai_tool" id="ai_tool" placeholder="如 Midjourney V6、DALL·E 3、Stable Diffusion 等" value="<?php echo e($display_data['ai_tool'] ?? ''); ?>">
+                    <div class="hint">声明用于生成此素材的 AI 工具及版本</div>
+                </div>
+                <div>
+                    <label>可商用依据*</label>
+                    <input name="ai_commercial_basis" id="ai_commercial_basis" placeholder="如 付费订阅可商用、开源协议 MIT、CC BY 4.0 等" value="<?php echo e($display_data['ai_commercial_basis'] ?? ''); ?>">
+                    <div class="hint">说明此 AI 生成素材可商用的法律/协议依据</div>
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:normal;">
+                    <input type="checkbox" name="ai_has_portrait" value="1" <?php echo !empty($display_data['ai_has_portrait']) ? 'checked' : ''; ?>>
+                    素材中包含 AI 生成的人物肖像
+                </label>
+            </div>
+        </div>
         
         <div style="display:flex;gap:10px;justify-content:flex-end;">
             <a class="btn btn-ghost" href="/admin/dashboard.php">取消</a>
@@ -190,6 +231,12 @@ if (!empty($form_data)) {
 
 <script>
 let newImageFiles = [];
+
+function toggleAiFields() {
+    const checked = document.getElementById('is_ai_generated').checked;
+    const aiFields = document.getElementById('ai_fields');
+    aiFields.style.display = checked ? 'grid' : 'none';
+}
 
 function removeImage(btn) {
     if (confirm('确认删除此图片？')) {
