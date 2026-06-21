@@ -71,6 +71,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$payload['title'] || !$payload['download_url']) {
         $error = '标题和下载链接为必填项。';
         $form_data = $payload;
+    } elseif ($is_ai && !$payload['author_id']) {
+        $error = 'AI 生成素材必须绑定作者。';
+        $form_data = $payload;
     } elseif ($is_ai && !$payload['ai_tool']) {
         $error = 'AI 生成素材必须声明所使用的 AI 工具。';
         $form_data = $payload;

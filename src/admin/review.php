@@ -6,6 +6,7 @@ require_login();
 
 $action = $_GET['action'] ?? '';
 $id = (int)($_GET['id'] ?? 0);
+$penalize = isset($_GET['penalize']) && $_GET['penalize'] === '1';
 
 if (!$id) {
     header('Location: /admin/dashboard.php');
@@ -13,7 +14,7 @@ if (!$id) {
 }
 
 if ($action === 'takedown') {
-    takedown_template($id);
+    takedown_template($id, $penalize);
 } elseif ($action === 'restore') {
     restore_template($id);
 }

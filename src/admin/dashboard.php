@@ -61,6 +61,10 @@ if ($filter_status === 'taken_down') {
         <a href="/admin/dashboard.php?status=taken_down" class="<?php echo $filter_status === 'taken_down' ? 'active' : ''; ?>">已下架</a>
     </div>
 
+    <div class="notice" style="margin-bottom:16px;">
+        提示：「下架」仅隐藏素材不扣信用；「AI未声明·下架」用于发现 AI 素材未如实声明时，将同时扣除作者 10 信用分。已下架素材重复操作不会重复扣分。
+    </div>
+
     <table>
         <thead>
             <tr>
@@ -106,7 +110,8 @@ if ($filter_status === 'taken_down') {
                         <div class="actions">
                             <a class="btn btn-ghost" href="/admin/edit.php?id=<?php echo e($tpl['id']); ?>">编辑</a>
                             <?php if ($tpl['status'] === 'active'): ?>
-                                <a class="btn btn-ghost" href="/admin/review.php?action=takedown&id=<?php echo e($tpl['id']); ?>" onclick="return confirm('确认下架此模板？下架将扣除作者 10 信用分。');">下架</a>
+                                <a class="btn btn-ghost" href="/admin/review.php?action=takedown&id=<?php echo e($tpl['id']); ?>" onclick="return confirm('确认下架此模板？');">下架</a>
+                                <a class="btn btn-ghost" style="background:#fef3c7;border-color:#f59e0b;color:#92400e;" href="/admin/review.php?action=takedown&penalize=1&id=<?php echo e($tpl['id']); ?>" onclick="return confirm('确认标记为「AI 未声明」并下架？将扣除作者 10 信用分。');">AI未声明·下架</a>
                             <?php else: ?>
                                 <a class="btn btn-ghost" href="/admin/review.php?action=restore&id=<?php echo e($tpl['id']); ?>" onclick="return confirm('确认恢复此模板？');">恢复</a>
                             <?php endif; ?>

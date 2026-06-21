@@ -72,13 +72,20 @@ function delete_template(int $id): void
     $stmt->execute([':id' => $id]);
 }
 
-function takedown_template(int $id): void
+function takedown_template(int $id, bool $penalize_credit = false): void
 {
+    $tpl = get_template_raw($id);
+    if (!$tpl) {
+        return;
+    }
+
+    $already_down = $tpl['status'] === 'taken_down';
+
     $pdo = db();
     $stmt = $pdo->prepare('UPDATE templates SET status = :status WHERE id = :id');
     $stmt->execute([':status' => 'taken_down', ':id' => $id]);
-    $tpl = get_template_raw($id);
-    if ($tpl && $tpl['author_id']) {
+
+    if ($penalize_credit && !$already_down && !empty($tpl['author_id'])) {
         penalize_author_credit((int)$tpl['author_id'], 10);
     }
 }
